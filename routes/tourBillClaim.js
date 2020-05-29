@@ -270,7 +270,8 @@ router.get('/getAirBusListView',verify,(request,response)=>{
   router.get('/getAirRailBus',verify,(request,response)=>{
     let tourbillId = request.query.tourbillId;
     console.log('tourbillId  : '+tourbillId);
-    let queryText = 'SELECT airRail.sfid, airRail.Departure_Station__c,airRail.arrival_station__c,airRail.Departure_Date__c,airRail.Arrival_Date__c, airRail.amount__c, airRail.name as airbusrailname ,tourBill.sfid  as tourId ,tourBill.name as tourbillname,airRail.createddate '+
+    
+    let queryText = 'SELECT airRail.sfid,airRail.Activity_Code__c,airRail.Project_Tasks__c, airRail.Heroku_Image_URL__c,airRail.Departure_Station__c,airRail.arrival_station__c,airRail.Departure_Date__c,airRail.Arrival_Date__c, airRail.amount__c, airRail.name as airbusrailname ,tourBill.sfid  as tourId ,tourBill.name as tourbillname,airRail.createddate '+
                      'FROM salesforce.Air_Rail_Bus_Fare__c airRail '+ 
                      'INNER JOIN salesforce.Tour_Bill_Claim__c tourBill '+
                      'ON airRail.Tour_Bill_Claim__c =  tourBill.sfid '+

@@ -310,6 +310,17 @@
                                   htmlTable += '<td><strong>Arrival Date</strong></td>';
                                   htmlTable += '<td>'+strArrivalDate+'</td>';
                               htmlTable += '</tr>';
+
+                              htmlTable += '<tr>';  
+                              htmlTable += '<td><strong>Activity Code</strong></td>';
+                              htmlTable += '<td>'+airRailBusRecord.activity_code__c+'</td>';
+                                  htmlTable += '<td><strong>Project Task</strong></td>';
+                                  if(airRailBusRecord.project_tasks__c != null)
+                                  htmlTable += '<td>'+airRailBusRecord.project_tasks__c+'</td>';
+                                  else
+                                  htmlTable += '<td></td>';
+                              htmlTable += '</tr>';
+
                               htmlTable += '<tr>';
                                   
                                 htmlTable += '<td><strong>Amount</strong></td>';
@@ -317,6 +328,21 @@
                                   htmlTable += '<td><strong>Created Date</strong></td>';
                                   htmlTable += '<td>'+strCreatedDate+'</td>';
                               htmlTable += '</tr>';
+
+                              htmlTable += '<tr>';
+                                  
+                              htmlTable += '<td><strong>View Image</strong></td>';
+                              console.log('typeof(airRailBusRecord.heroku_image_url__c) '+typeof(airRailBusRecord.heroku_image_url__c));
+                              if(airRailBusRecord.heroku_image_url__c != null && airRailBusRecord.heroku_image_url__c != '')
+                                  htmlTable += '<td><a target="_blank" href="'+airRailBusRecord.heroku_image_url__c+'" >Click Here</a></td>';
+                              else
+                                  htmlTable += '<td></td>';
+                              
+                                  htmlTable += '<td><strong></strong></td>';
+                                  htmlTable += '<td></td>';
+                              htmlTable += '</tr>';
+
+
                               $('#airBusRailTable').empty();
                               $('#airBusRailTable').html(htmlTable);
                             }
