@@ -390,7 +390,7 @@ router.get('/details', async (request, response) => {
     console.log('Hurrah expenseId '+expenseId);
 
     var expenseQueryText = 'SELECT id,sfid,Name, Project_Name__c, Department__c, Designation__c, '+
-    ' Conveyance_Employee_Category_Band__c,Employee_ID__c, '+
+    ' Conveyance_Employee_Category_Band__c,Employee_ID__c, Project_Manager_Status__c, Accounts_Status__c , '+
     'Approval_Status__c, Amount_Claimed__c, petty_cash_amount__c, Conveyance_Amount__c, Tour_Bill_Claim__c '+
     'FROM salesforce.Milestone1_Expense__c WHERE sfid = $1';
 
@@ -514,7 +514,7 @@ router.post('/savePettyCashForm', (request, response) => {
             for(let i=0; i< numberOfRows ; i++)
             {
               const schema = joi.object({
-                bill_no:joi.string().required().label('Please provode Bill NO'),
+            //  bill_no:joi.string().required().label('Please provode Bill NO'),
                 bill_dt:joi.date().required().label('Please Fill Bill Date.'),
                 bill_date:joi.date().max('now').label('Please Fill Bill Date less than Today'),
                 projectTask:joi.string().required().label('Select Activity Code '),
@@ -522,7 +522,7 @@ router.post('/savePettyCashForm', (request, response) => {
                 amount:joi.number().required().label('Amount cannot be Null'),
                 imgpath:joi.string().invalid('demo').required().label('Upload your File/Attachments'),
                })
-               let result = schema.validate({bill_no:request.body.bill_no[i],amount:request.body.amount[i],bill_dt:request.body.bill_date[i] ,bill_date:request.body.bill_date[i],projectTask : request.body.projectTask[i],nature_exp: request.body.nature_exp[i] , imgpath:request.body.imgpath[i]})
+               let result = schema.validate({amount:request.body.amount[i],bill_dt:request.body.bill_date[i] ,bill_date:request.body.bill_date[i],projectTask : request.body.projectTask[i],nature_exp: request.body.nature_exp[i] , imgpath:request.body.imgpath[i]})
                if(result.error)
                {
                  console.log('ejssssss VAlidation'+JSON.stringify(result.error));
@@ -534,9 +534,13 @@ router.post('/savePettyCashForm', (request, response) => {
                 
                  
                 let pettyCashValues = [];
+               /*  if(typeof(request.body.bill_no) == 'undefined' || request.body.bill_no == '')
+                pettyCashValues.push('');
+              else
+                pettyCashValues.push(request.body.bill_no[i]); */
                 pettyCashValues.push(request.body.bill_no[i]);
                 pettyCashValues.push(request.body.bill_date[i]);
-                pettyCashValues.push(request.body.activity_code[i]);
+                pettyCashValues.push(request.body.projectTask[i]);
                 pettyCashValues.push(request.body.desc[i]);
                 pettyCashValues.push(request.body.nature_exp[i]);
                 pettyCashValues.push(request.body.amount[i]);
@@ -550,7 +554,7 @@ router.post('/savePettyCashForm', (request, response) => {
       else
       { 
         const schema = joi.object({
-          bill_no:joi.string().required().label('Please provode Bill NO'),
+       //   bill_no:joi.string().required().label('Please provode Bill NO'),
           bill_dt:joi.date().required().label('Please Fill Bill Date.'),
           bill_date:joi.date().max('now').label('Please Fill Bill Date less than Today'),
           projectTask:joi.string().required().label('Select Activity Code '),
@@ -558,7 +562,7 @@ router.post('/savePettyCashForm', (request, response) => {
           amount:joi.number().required().label('Amount cannot be Null'),
           imgpath:joi.string().invalid('demo').required().label('Upload your File/Attachments'),
          })
-         let result = schema.validate({bill_no:request.body.bill_no,amount:request.body.amount,bill_dt:request.body.bill_date, bill_date:request.body.bill_date, projectTask:request.body.projectTask,nature_exp: request.body.nature_exp, imgpath:request.body.imgpath})
+         let result = schema.validate({amount:request.body.amount,bill_dt:request.body.bill_date, bill_date:request.body.bill_date, projectTask:request.body.projectTask,nature_exp: request.body.nature_exp, imgpath:request.body.imgpath})
          if(result.error)
          {
            console.log('ejssssss VAlidation'+JSON.stringify(result.error));
@@ -571,9 +575,13 @@ router.post('/savePettyCashForm', (request, response) => {
           for(let i=0; i< numberOfRows ; i++)
           {
               let pettyCashValues = [];
+           /*    if(typeof(request.body.bill_no) == 'undefined' || request.body.bill_no == '')
+                pettyCashValues.push('');
+              else
+                pettyCashValues.push(request.body.bill_no); */
               pettyCashValues.push(request.body.bill_no);
               pettyCashValues.push(request.body.bill_date);
-              pettyCashValues.push(request.body.activity_code);
+              pettyCashValues.push(request.body.projectTask);
               pettyCashValues.push(request.body.desc);
               pettyCashValues.push(request.body.nature_exp);
               pettyCashValues.push(request.body.amount);
@@ -588,15 +596,16 @@ router.post('/savePettyCashForm', (request, response) => {
       }
       
       
-      let pettyCashInsertQuery = format('INSERT INTO salesforce.Petty_Cash_Expense__c (bill_no__c, bill_date__c,activity_Code__c,description_of_activity_expenses__c,nature_of_exp__c,amount__c,heroku_image_url__c,expense__c) VALUES %L returning id', lstPettyCash);
+      let pettyCashInsertQuery = format('INSERT INTO salesforce.Petty_Cash_Expense__c (bill_no__c, bill_date__c,project_task__c,description_of_activity_expenses__c,nature_of_exp__c,amount__c,heroku_image_url__c,expense__c) VALUES %L returning id', lstPettyCash);
   
+      console.log('pettyCashInsertQuery   '+pettyCashInsertQuery);
       pool.query(pettyCashInsertQuery)
       .then((pettyCashQueryResult) => {
           console.log('pettyCashQueryResult  '+JSON.stringify(pettyCashQueryResult.rows));
           response.send('Petty Cash Form Saved Succesfully !');
       })
       .catch((pettyCashQueryError) => {
-        console.log('pettyCashQueryError  '+pettyCashQueryError);
+        console.log('pettyCashQueryError  '+pettyCashQueryError.stack);
         response.send('Error Occured !');
       })
     
@@ -949,7 +958,7 @@ router.get('/getpettycashDetail',verify,(request, response) => {
 
   let pettyCashId = request.query.pettyCashId;
   console.log('pettyCashId  : '+pettyCashId);
-  let queryText = 'SELECT pettycash.sfid, pettycash.description_of_activity_expenses__c, pettycash.amount__c, pettycash.name as pettycashname ,exp.name as expname, pettycash.bill_no__c, pettycash.Bill_Date__c ,pettycash.Nature_of_exp__c ,pettycash.createddate '+
+  let queryText = 'SELECT pettycash.sfid, pettycash.Activity_Code__c, pettycash.Project_Tasks__c, pettycash.description_of_activity_expenses__c, pettycash.amount__c, pettycash.name as pettycashname ,exp.name as expname, pettycash.bill_no__c, pettycash.Bill_Date__c, pettycash.heroku_image_url__c ,pettycash.Nature_of_exp__c ,pettycash.createddate '+
                    'FROM salesforce.Petty_Cash_Expense__c pettycash '+ 
                    'INNER JOIN salesforce.Milestone1_Expense__c exp '+
                    'ON pettycash.Expense__c =  exp.sfid '+

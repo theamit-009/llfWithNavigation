@@ -47,7 +47,7 @@
         <div class="modal-dialog" role="document">
           <div class="modal-content">
             <div class="modal-header">
-              <h5 class="modal-title">Approval Comment</h5>
+              <h5 class="modal-title">Petty Cash View</h5>
               <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                 <span aria-hidden="true">&times;</span>
               </button>
@@ -62,7 +62,6 @@
             </table>
             </div>
             <div class="modal-footer">
-              <button type="button" class="btn btn-primary" id="submitForApproval" >Submit</button>
               <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
             </div>
           </div>
@@ -186,6 +185,12 @@
                             {
                               let pettyCashRecord = response[0];
                               let htmlTable = '';
+                          /*    let billDate = new Date(pettyCashRecord.bill_date__c);
+                              billDate.setHours(billDate.getHours() + 5);
+                              billDate.setMinutes( billDate.getMinutes() + 30 );
+                              let createdDate = new Date(pettyCashRecord.createddate);
+                              createdDate.setHours(createdDate.getHours() + 5);
+                              createdDate.setMinutes( createdDate.getMinutes() + 30 ); */
                               let strBillDate = new Date(pettyCashRecord.bill_date__c).toLocaleString();
                               let strCreatedDate = new Date(pettyCashRecord.createddate).toLocaleString();
                               htmlTable += '<tr>';
@@ -203,16 +208,39 @@
                               htmlTable += '</tr>';
                               htmlTable += '<tr>';
                                   htmlTable += '<td><strong>Nature Of Expense</strong></td>';
-                                  htmlTable += '<td>'+pettyCashRecord.nature_of_exp__c+'</td>';
+                                  if(pettyCashRecord.nature_of_exp__c != null)
+                                      htmlTable += '<td>'+pettyCashRecord.nature_of_exp__c+'</td>';
+                                  else
+                                      htmlTable += '<td></td>';
                                   htmlTable += '<td><strong>Amount</strong></td>';
                                   htmlTable += '<td>'+pettyCashRecord.amount__c+'</td>';
                               htmlTable += '</tr>';
+                              htmlTable += '<tr>';
+                                htmlTable += '<td><strong>Activity Code</strong></td>';
+                                htmlTable += '<td>'+pettyCashRecord.activity_code__c+'</td>';
+                                htmlTable += '<td><strong>Project Task</strong></td>';
+                                if(pettyCashRecord.project_tasks__c != null)
+                                    htmlTable += '<td>'+pettyCashRecord.project_tasks__c+'</td>';
+                                else
+                                    htmlTable += '<td></td>';
+                            htmlTable += '</tr>';
                               htmlTable += '<tr>';
                                   htmlTable += '<td><strong>Description</strong></td>';
                                   htmlTable += '<td>'+pettyCashRecord.description_of_activity_expenses__c+'</td>';
                                   htmlTable += '<td><strong>Created Date</strong></td>';
                                   htmlTable += '<td>'+strCreatedDate+'</td>';
                               htmlTable += '</tr>';
+                              htmlTable += '<tr>';
+                                htmlTable += '<td><strong>View Image</strong></td>';
+                                if(pettyCashRecord.heroku_image_url__c != null && pettyCashRecord.heroku_image_url__c != '')
+                                  htmlTable += '<td><a target="_blank" href="'+pettyCashRecord.heroku_image_url__c+'" >Click Here</a></td>';
+                                else
+                                  htmlTable += '<td></td>';
+                                  
+                                htmlTable += '<td><strong></strong></td>';
+                                htmlTable += '<td></td>';
+                            htmlTable += '</tr>';
+                              
                               $('#pettyCashDetailsTable').empty();
                               $('#pettyCashDetailsTable').html(htmlTable);
                             }

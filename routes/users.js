@@ -41,7 +41,7 @@ router.get('/getpldForm',verify, (request, response) => {
   console.log('request.query  : '+JSON.stringify(request.query));
   let contactId = request.query.contactId;
 
-  pool.query('SELECT pld.project__c, pld.pldform_generatedURL__c, pld.createddate, pld.project_library__c ,pld.name as pldname, pro.name as proname FROM salesforce.sent_pld_form__c as pld INNER JOIN salesforce.Milestone1_Project__c as pro ON pld.project__c = pro.sfid WHERE tocontact__c = $1',[userId])
+  pool.query('SELECT pld.project__c, pld.pldform_generatedURL__c, pld.createddate, pld.project_library__c ,pld.name as pldname, pro.name as proname FROM salesforce.sent_pld_form__c as pld INNER JOIN salesforce.Milestone1_Project__c as pro ON pld.project__c = pro.sfid WHERE tocontact__c = $1 AND isactive__c = $2',[userId, true])
   .then((pldQueryResult) => {
         console.log('pldQueryResult  : '+JSON.stringify(pldQueryResult.rows));
         if(pldQueryResult.rowCount > 0)
@@ -69,7 +69,7 @@ router.get('/viewResponses',verify,(request,response)=>{
   var userId = request.user.sfid; 
 
   pool
-  .query('SELECT sfid, name, createdDate from salesforce.Project_Survey_Response__c WHERE Project_Library__c = $1 AND Response_By__c = $2',[pldFormId, userId])
+  .query('SELECT psr.sfid, psr.name, psr.createdDate, ca.status__c from salesforce.Project_Survey_Response__c as psr LEFT JOIN salesforce.Custom_Approval__c as ca ON  psr.sfid = ca.expense__c WHERE Project_Library__c = $1 AND Response_By__c = $2',[pldFormId, userId])
   .then((pldResponseQueryResult) => {
     console.log('pldResponseQueryResult  '+JSON.stringify(pldResponseQueryResult.rows));
     if(pldResponseQueryResult.rowCount > 0)
@@ -731,37 +731,309 @@ router.get('/fetchTASKCODE',verify,(request,response)=>{
     response.send(queryEr);
   })
 })
-/* 
-router.get('/taskdetail',verify,(request,response)=>{
-  let idsProject='a030p0000018ScOAAU';
-  pool.query('select sfid, from salesforce.Milestone1_Task__c where sfid IS NOT NULL')
-  .then((queryResult)=>{
-    console.log('queryResult '+JSON.stringify(queryResult));
-    let result=JSON.stringify(queryResult.rows);
-    response.render('taskcode',{idsProject},{result});
-  })
-});
-router.get('/fetchtaskdetail',verify,(request,response)=>{
- let fetchQuerry='SELECT sfid ,name FROM salesforce.Milestone1_Task__c  WHERE Project_Milestone__c.project__c =$1';
- console.log('fetchQuerry '+fetchQuerry);
- let idsProject='a030p0000018ScOAAU';
- pool
- .query(fetchQuerry,[idsProject])
-.then((querrtResult)=>{
-  console.log('queryyResult '+JSON.stringify(querrtResult.rows))
-  response.send('taskCode',{querrtResult});
-})
-.catch((QueryError)=>{
-  console.log('QueryError '+QueryError.stack);
-  response.send(QueryError);
-})
-});
- */
 
 router.get('/pldReports',verify,(request, response) => {
   let objUser = request.user;
-  response.render('./loginDashboard/pldReports',{objUser});
+
+  pool
+  .query('SELECT sfid FROM salesforce.PldExcelReportVisibility__c WHERE Contact__c = $1 AND isShared__c = $2',[objUser.sfid, true])
+  .then((excelReportResult) =>{
+      console.log('excelReportResult  : '+JSON.stringify(excelReportResult.rows));
+      if(excelReportResult.rowCount > 0)
+      {
+       response.render('./loginDashboard/pldReports',{objUser,showExcelReport : true});
+      }
+      else
+      {
+        response.render('./loginDashboard/pldReports',{objUser,showExcelReport : false});
+      }
+  })
+  .catch((excelReportError) =>{
+      console.log('excelReportError : '+excelReportError);
+      response.render('./loginDashboard/pldReports',{objUser,showExcelReport : false});
+  })
+
+  
 })
+
+
+router.post('/sendResponseForApproval',verify, (request, response) => {
+  console.log('Expense request.user '+JSON.stringify(request.user));
+  let objUser = request.user;
+  let reponseId = request.body.reponseId;
+  console.log('reponseId   : '+reponseId);
+
+  let managerId = '';
+    pool
+    .query('SELECT manager__c FROM salesforce.Team__c WHERE sfid IN (SELECT team__c FROM salesforce.Team_Member__c WHERE Representative__c = $1)',[objUser.sfid])
+    .then((teamMemberQueryResult) => {
+          console.log('teamMemberQueryResult   : '+JSON.stringify(teamMemberQueryResult.rows));
+          if(teamMemberQueryResult.rowCount > 0)
+          {
+            let lstManagerId = teamMemberQueryResult.rows.filter((eachRecord) => {
+                                    if(eachRecord.manager__c != null)
+                                        return eachRecord;
+                              })
+            managerId = lstManagerId[0].manager__c;
+            console.log('managerId   : '+managerId);
+
+            pool.query('INSERT INTO salesforce.Custom_Approval__c (Approval_Type__c,Submitter__c, Assign_To__c ,Expense__c, Comment__c, Status__c, Record_Name__c,amount__c) values($1, $2, $3, $4, $5, $6, $7, $8) ',['PldForm',objUser.sfid, managerId, reponseId, '', 'Pending', '', 0 ])
+            .then((customApprovalQueryResult) => {
+                    console.log('customApprovalQueryResult  '+JSON.stringify(customApprovalQueryResult));
+                    response.send('Sent For Approval !');
+            })
+            .catch((customApprovalQueryError) => {
+                    console.log('customApprovalQueryError  '+customApprovalQueryError.stack);
+                    response.send('Error Occured while sending for approval !');
+            })
+          }
+    })
+    .catch((teamMemberQueryError) => {
+          console.log('teamMemberQueryError   :  '+teamMemberQueryError.stack);
+          response.send('Error Occured while sending for approval !');
+    })
+});
+
+
+router.post('/deletePldResponse',verify, (request, response) => {
+
+  let objUser = request.user;
+  console.log('objUser   : '+JSON.stringify(objUser));
+  let reponseId = request.body.reponseId;
+  console.log('reponseId  : '+reponseId);
+
+  pool.query('DELETE FROM salesforce.Project_Survey_Response__c WHERE sfid = $1',[reponseId])
+  .then((deleteResponseResult) => {
+      console.log('deleteResponseResult  : '+JSON.stringify(deleteResponseResult));
+      response.send('Deleted Successfully !');
+  })
+  .catch((deleteResponseError) => {
+    console.log('deleteResponseError  : '+deleteResponseError.stack);
+     response.send('Error Occured !');
+  })
+
+});
+
+
+router.get('/getRelatedProjectLibraries',verify,(request, response)=> {
+
+  let selectedProjectId = request.query.selectedProjectId;
+  console.log('Inside Get Method selectedProjectId : '+selectedProjectId);
+
+  pool
+  .query('SELECT sfid, name,PLD_Questions__c FROM salesforce.Project_Library__c WHERE Project__c = $1 AND Active__c =$2',[selectedProjectId,true])
+  .then((projectLibraryResult) => {
+    console.log('projectLibraryResult  : '+JSON.stringify(projectLibraryResult.rows));
+    if(projectLibraryResult.rowCount > 0)
+    {
+      response.send(projectLibraryResult.rows);
+    }
+    else
+    {
+      response.send([]);
+    }
+    
+
+  })
+  .catch((projectLibraryQueryError) => {
+    console.log('projectLibraryQueryError  : '+projectLibraryQueryError);
+    response.send([]);
+  })
+
+});
+
+
+
+
+router.get('/getProjects',verify,(request, response) =>{
+
+  
+  let objUser = request.user;
+  console.log('objUser  '+JSON.stringify(objUser));
+
+  if(objUser.isManager ==  false)
+  {
+    pool
+    .query('SELECT sfid, Name, Team__c FROM salesforce.Team_Member__c WHERE Representative__c = $1 ;',[objUser.sfid])
+    .then(teamMemberResult => {
+      console.log('Name of TeamMemberId  : '+teamMemberResult.rows[0].name+'   sfid :'+teamMemberResult.rows[0].sfid);
+      console.log('Team Id  : '+teamMemberResult.rows[0].team__c);
+      console.log('Number of Team Member '+teamMemberResult.rows.length);
+      
+      var projectTeamparams = [], lstTeamId = [];
+      for(var i = 1; i <= teamMemberResult.rows.length; i++) {
+        projectTeamparams.push('$' + i);
+        lstTeamId.push(teamMemberResult.rows[i-1].team__c);
+      } 
+      var projectTeamQueryText = 'SELECT sfid, Name, Project__c FROM salesforce.Project_Team__c WHERE Team__c IN (' + projectTeamparams.join(',') + ')';
+      console.log('projectTeamQueryText '+projectTeamQueryText);
+      
+        pool
+        .query(projectTeamQueryText,lstTeamId)
+        .then((projectTeamResult) => {
+            console.log('projectTeam Reocrds Length '+projectTeamResult.rows.length);
+            console.log('projectTeam Name '+projectTeamResult.rows[0].name);
+
+            var projectParams = [], lstProjectId = [];
+            for(var i = 1; i <= projectTeamResult.rows.length; i++) {
+              projectParams.push('$' + i);
+              lstProjectId.push(projectTeamResult.rows[i-1].project__c);
+            } 
+            console.log('lstProjectId  : '+lstProjectId);
+            var projetQueryText = 'SELECT sfid, Name FROM salesforce.Milestone1_Project__c WHERE sfid IN ('+ projectParams.join(',')+ ')';
+
+            pool.
+            query(projetQueryText, lstProjectId)
+            .then((projectQueryResult) => { 
+                  console.log('Number of Projects '+projectQueryResult.rows.length);
+                  
+                  
+                  if(projectQueryResult.rowCount > 0)
+                  {
+                    response.send(projectQueryResult.rows);
+                  }
+                  else
+                  {
+                    response.send([]);
+                  }
+                
+            })
+            .catch((projectQueryError) => {
+                  console.log('projectQueryError '+projectQueryError.stack);
+                  response.send([]);
+            })
+         
+        })
+          .catch((projectTeamQueryError) =>{
+            console.log('projectTeamQueryError : '+projectTeamQueryError.stack);
+            response.send([]);
+          })          
+      })
+      .catch((teamMemberQueryError) => {
+      console.log('Error in team member query '+teamMemberQueryError.stack);
+        response.send([]);
+      })
+
+  }
+  else
+  {
+
+    pool
+    .query('SELECT sfid, Name FROM salesforce.Team__c WHERE Manager__c = $1 ;',[objUser.sfid])
+    .then(teamMemberResult => {
+      
+      
+      var projectTeamparams = [], lstTeamId = [];
+      for(var i = 1; i <= teamMemberResult.rows.length; i++) {
+        projectTeamparams.push('$' + i);
+        lstTeamId.push(teamMemberResult.rows[i-1].sfid);
+      } 
+      var projectTeamQueryText = 'SELECT sfid, Name, Project__c FROM salesforce.Project_Team__c WHERE Team__c IN (' + projectTeamparams.join(',') + ')';
+      console.log('projectTeamQueryText '+projectTeamQueryText);
+      
+        pool
+        .query(projectTeamQueryText,lstTeamId)
+        .then((projectTeamResult) => {
+            console.log('projectTeam Reocrds Length '+projectTeamResult.rows.length);
+            console.log('projectTeam Name '+projectTeamResult.rows[0].name);
+
+            var projectParams = [], lstProjectId = [];
+            for(var i = 1; i <= projectTeamResult.rows.length; i++) {
+              projectParams.push('$' + i);
+              lstProjectId.push(projectTeamResult.rows[i-1].project__c);
+            } 
+            console.log('lstProjectId  : '+lstProjectId);
+            var projetQueryText = 'SELECT sfid, Name FROM salesforce.Milestone1_Project__c WHERE sfid IN ('+ projectParams.join(',')+ ')';
+
+            pool.
+            query(projetQueryText, lstProjectId)
+            .then((projectQueryResult) => { 
+                  console.log('Number of Projects '+projectQueryResult.rows.length);
+                  
+                  
+                  if(projectQueryResult.rowCount > 0)
+                  {
+                    response.send(projectQueryResult.rows);
+                  }
+                  else
+                  {
+                    response.send([]);
+                  }
+                  
+                  
+
+
+            })
+            .catch((projectQueryError) => {
+                  console.log('projectQueryError '+projectQueryError.stack);
+                  response.send([]);
+            })
+         
+        })
+          .catch((projectTeamQueryError) =>{
+            console.log('projectTeamQueryError : '+projectTeamQueryError.stack);
+            response.send([]);
+          })          
+      })
+      .catch((teamMemberQueryError) => {
+      console.log('Error in team member query '+teamMemberQueryError.stack);
+        response.send([]);
+      })
+  }
+
+});
+
+
+router.get('/getProjectReportsAccessbility',verify, (request, response) =>{
+
+  let objUser = request.user;
+
+  pool
+  .query('SELECT sfid, Project__c FROM salesforce.PldExcelReportVisibility__c WHERE Contact__c = $1 AND isShared__c = $2',[objUser.sfid, true])
+  .then((excelReportResult) =>{
+      console.log('excelReportResult  : '+JSON.stringify(excelReportResult.rows));
+      if(excelReportResult.rowCount > 0)
+      {
+        let projectIdParams = [], lstProjectIds = [],i=1;
+        excelReportResult.rows.forEach((eachRecord) => {
+            projectIdParams.push('$'+i);
+            lstProjectIds.push(eachRecord.project__c);
+            i++;
+        })
+
+        let projectQueryText = 'SELECT id, sfid, name FROM salesforce.Milestone1_Project__c WHERE sfid IN ('+projectIdParams.join(',')+')';
+        pool
+        .query(projectQueryText,lstProjectIds)
+        .then((projectQueryResult) => {
+          console.log('Number of Projects '+projectQueryResult.rows.length);
+          if(projectQueryResult.rowCount > 0)
+          {
+            response.send(projectQueryResult.rows);
+          }
+          else
+          {
+            response.send([]);
+          }
+
+        })
+        .catch((projectQueryError) => {
+          console.log('projectQueryError  : '+projectQueryError);
+          response.send([]);
+        })
+
+
+      }
+      else
+      {
+        response.send([]);
+      }
+  })
+  .catch((excelReportError) =>{
+      console.log('excelReportError : '+excelReportError);
+      response.send([]);
+  })
+
+});
 
 
  module.exports = router;

@@ -119,7 +119,7 @@
           </button>
         </div>
       <section>
-            <div class="row mt-5 mb-3 align-items-center">
+            <div class="row mt-6 mb-3 align-items-center">
                       <div class="col-md-5">
                           <button class="btn btn-primary btn-md bg-gray"  id="createNewExpenseButton">Create New Expense</button>
                           <button class="btn btn-primary btn-md" id="refresh">Refresh</button>
@@ -141,7 +141,7 @@
                           </div>
                       </div>
               </div>
-              <div class=" table-responsive  table-wrap" id="rootExpenseTable">
+              <div class=" table-responsive md-10 table-wrap" id="rootExpenseTable">
                   <div id="spinner">
                       <center> <img src="/spinner-gif-transparent-background-14.gif" />  </center>
                     </div>
@@ -527,7 +527,7 @@
           sequence: 'Sr No.',
           name: 'Expense Name',
           projectName: 'Project Name',
-          approvalStatus: 'Approval Status',
+          approvalStatus: 'Reporting Manager Status',
           totalAmount: 'Total Amount',
           /* pettyCashAmount: 'Petty Cash Amount',
           conveyanceVoucherAmount: 'Conveyance Voucher Amount' ,
@@ -722,15 +722,30 @@
               expenseTableRows += '</tr>';   
 
               expenseTableRows += '<tr>';
-              expenseTableRows += '<td><strong>Approval Status<strong></td>';
+              expenseTableRows += '<td><strong>Reporting Manager Status<strong></td>';
               if(expenseRecord.approval_status__c != null)
                 expenseTableRows += '<td>'+expenseRecord.approval_status__c+'</td>';
               else 
                 expenseTableRows += '<td> </td>';
-              expenseTableRows += '<td><strong><strong></td>';
-              expenseTableRows += '<td>'+' '+'</td>';
-              expenseTableRows += '</tr>';   
+              expenseTableRows += '<td><strong>Project Manager Status<strong></td>';
+              if(expenseRecord.project_manager_status__c != null)
+                expenseTableRows += '<td>'+expenseRecord.project_manager_status__c+'</td>';
+              else 
+                expenseTableRows += '<td> </td>';
+              expenseTableRows += '</tr>'; 
 
+
+              expenseTableRows += '<tr>';
+                expenseTableRows += '<td><strong>Accounts Status<strong></td>';
+                if(expenseRecord.accounts_status__c != null)
+                  expenseTableRows += '<td>'+expenseRecord.accounts_status__c+'</td>';
+                else 
+                  expenseTableRows += '<td> </td>';
+                expenseTableRows += '<td><strong><strong></td>';
+                expenseTableRows += '<td> </td>';
+                expenseTableRows += '</tr>'; 
+              
+            
               expenseTableRows += '<tr>';
               expenseTableRows += '<td colspan="4" style="background-color:#d3d3d3;padding:5px;"><h5 style="padding-left:5px;">Amount Information</h5></td>';    
               expenseTableRows += '</tr>';

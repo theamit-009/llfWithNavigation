@@ -316,6 +316,8 @@ function cityAllowance(name,cnt)
     let val=response[0];
     alert(JSON.stringify(val.boarding_lodging__c));
     // $('#amtForBL'+cnt).attr("disabled",true);
+    $('amtForBL'+cnt).attr("disabled",true);
+    $('amtForBL'+cnt).attr("ownStayAmount",true);
     document.getElementById('amtForBL'+cnt). value = val.boarding_lodging__c;
     document.getElementById('dailyAllowances'+cnt).value = val.daily_allowance_amount__c;
     document.getElementById('ownStayAmount'+cnt). value = 0;
